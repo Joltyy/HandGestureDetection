@@ -1,0 +1,25 @@
+# Virtual environment
+venv/
+env/
+include/
+lib/
+Scripts/
+share/
+
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+pyvenv.cfg
+
+# Other temporary files
+*.log
+*.cache
