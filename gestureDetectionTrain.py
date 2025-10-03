@@ -120,12 +120,6 @@ class GestureDetector:
         print(f"Test Accuracy: {accuracy:.4f}")
         
         return loss, accuracy
-    
-    def load_data(self, data_folder):
-        pass
-
-    def preprocess_data(self, X, y):
-        pass
 
     def save_model(self, model_path="gesture_model.h5", scaler_path="scaler.pkl"):
         if self.model is not None:

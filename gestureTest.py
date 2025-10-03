@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from handDetection import HandDetector
-from gestureDetection import GestureDetector
+from gestureDetectionTrain import GestureDetector
 import time
 
 class GestureTestSystem:
