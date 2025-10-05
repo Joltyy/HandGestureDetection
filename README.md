@@ -1,10 +1,10 @@
 SETUP   
 
 abis clone run:   
-python -m venv HandGestureDetection   
-.\HandGestureDetection\Scripts\activate   ---> habis ini harusnya ada text (HandGestureDetection) warna ijo di terminal   
-cd HandGestureDetection     
-pip install -r .\requirements.txt    ----> ini agak lama, kalo ada error nt... o7  
+__python -m venv HandGestureDetection__   
+__.\HandGestureDetection\Scripts\activate__   ---> habis ini harusnya ada text (HandGestureDetection) warna ijo di terminal   
+__cd HandGestureDetection__     
+__pip install -r .\requirements.txt__    ----> ini agak lama, kalo ada error nt... o7  
 done!!! 
 
 
