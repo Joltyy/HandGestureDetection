@@ -21,15 +21,16 @@ class HandDetector:
 
         self.gesture_labels = {
             '0': 'idle',
-            '1': "move_forward",
-            '2': "move_left",
-            '3': "move_backward",
-            '4': "move_right",
+            '1': "punch",
+            '2': "slap",
+            '3': "tickle",
+            '4': "jitak"
         }
 
         self.current_label = '0'
         self.training_data = []
         self.data_file = 'training_data.csv'
+        self.current_features = None
 
         if not os.path.exists(self.data_file):
             with open(self.data_file, 'w', newline='') as f:
@@ -95,17 +96,25 @@ class HandDetector:
             cv2.imshow("Image", img)
             key = cv2.waitKey(1) & 0xFF
 
-            #0, 1, 2, 3, 4, to select gesture
+            #0, 1, 2, 3, 4, 5 to select gesture
             #s to save the feature and label it
             #q to quit
-            if(key in [ord('0'), ord('1'), ord('2'), ord('3'), ord('4')]):
+
+            #changes made here is just to make sure you can't accidentally save when no hand is detected
+            if(key in [ord('0'), ord('1'), ord('2'), ord('3'), ord('4'), ord('5')]):
                 self.current_label = chr(key)
                 self.current_features = features if results.multi_hand_landmarks else None
-                if self.current_features is None:
-                    print("No hand detected try again")
-                print(f"Selected gesture: {self.gesture_labels[self.current_label]}")
+                if results.multi_hand_landmarks and 'features' in locals():
+                    self.current_features = features
+                    print(f"Selected gesture: {self.gesture_labels[self.current_label]}")
+                else:
+                    self.current_features = None
+                    print("No hand detected! Cannot select gesture.")
+                # if self.current_features is None:
+                #     print("No hand detected try again")
+                # print(f"Selected gesture: {self.gesture_labels[self.current_label]}")
             elif key == ord('s'):
-                if self.current_features is not None:
+                if (self.current_features is not None and self.current_label in self.gesture_labels):
                     self.save_training_sample(self.current_features, self.current_label)
                 else:
                     print("No hand detected! Cannot save sample.")
@@ -116,6 +125,9 @@ class HandDetector:
         cv2.destroyAllWindows()
 
     def save_training_sample(self, features, label):
+        if features is None or len(features) != 70 or np.isnan(features).any() or np.isinf(features).any():
+            print("Skipped saving: invalid feature vector.")
+            return
         with open(self.data_file, 'a', newline='') as f:
             writer = csv.writer(f)
             row = features.tolist() + [label]

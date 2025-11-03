@@ -53,7 +53,7 @@ class GestureTestSystem:
                         #get the average prediction from current history
                         if len(prediction_history) >= 3:
                             most_common = max(set(prediction_history), key=prediction_history.count)
-                            smoothed_gesture = self.gesture_detector.gesture_labels[most_common]
+                            smoothed_gesture = self.gesture_detector.gesture_labels[str(most_common)]
                         else:
                             smoothed_gesture = gesture_name
                         
@@ -84,7 +84,6 @@ class GestureTestSystem:
         
         cap.release()
         cv2.destroyAllWindows()
-
 
 if __name__ == "__main__":
     try:
