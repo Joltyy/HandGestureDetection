@@ -3,6 +3,19 @@ import numpy as np
 from handDetection import HandDetector
 from gestureDetectionTrain import GestureDetector
 import time
+import socket
+import json
+
+HOST = '127.0.0.1'
+PORT = 5005
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((HOST, PORT))
+s.listen(1)
+
+print("Waiting for Unity connection...")
+conn, addr = s.accept()
+print(f"Connected by {addr}")
 
 class GestureTestSystem:
     def __init__(self):
@@ -53,7 +66,7 @@ class GestureTestSystem:
                         #get the average prediction from current history
                         if len(prediction_history) >= 3:
                             most_common = max(set(prediction_history), key=prediction_history.count)
-                            smoothed_gesture = self.gesture_detector.gesture_labels[most_common]
+                            smoothed_gesture = self.gesture_detector.gesture_labels[str(most_common)]
                         else:
                             smoothed_gesture = gesture_name
                         
@@ -81,15 +94,15 @@ class GestureTestSystem:
             #quit q
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
+            #send to unity
+            if results.multi_hand_landmarks and pred_class is not None:
+                gesture_index = int(pred_class)  # e.g., 1,2,3,4,5
+                conn.sendall(f"{gesture_index}\n".encode('utf-8'))
         
         cap.release()
         cv2.destroyAllWindows()
 
-
 if __name__ == "__main__":
-    try:
-        test_system = GestureTestSystem()
-        test_system.run_realtime_test()
-    except Exception as e:
-        print(f"Error: {e}")
-        print("Make sure you have trained the model first by running gestureDetection.py")
+    test_system = GestureTestSystem()
+    test_system.run_realtime_test()
