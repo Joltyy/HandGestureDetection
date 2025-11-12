@@ -14,11 +14,11 @@ class GestureDetector:
         self.scaler = StandardScaler()
         self.label_encoder = LabelEncoder()
         self.gesture_labels = {
-            0: 'idle',
-            1: 'move_forward',
-            2: 'move_left', 
-            3: 'move_backward',
-            4: 'move_right'
+            '0': 'idle',
+            '1': "punch",
+            '2': "slap",
+            '3': "tickle",
+            '4': "jitak"
         }
         self.num_classes = len(self.gesture_labels)
         self.input_dim = 70  #60 relative coords + 10 distances
@@ -26,7 +26,8 @@ class GestureDetector:
     def create_model(self):
         self.model = tf.keras.Sequential([
             #Input layer
-            tf.keras.layers.Dense(128, activation='relu', input_shape=(self.input_dim,)),
+            tf.keras.layers.Input(shape=(self.input_dim,)), 
+            tf.keras.layers.Dense(128, activation='relu'),
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.Dropout(0.3),
 
@@ -55,15 +56,18 @@ class GestureDetector:
     def train(self, x, y, validation_split=0.2, epochs=100, batch_size=32):
         if self.model is None:
             self.create_model()
-        
-        #normalize features
-        x_norm = self.scaler.fit_transform(x)
-        
+        if x is None or len(x) == 0:
+            raise ValueError("No samples to train after preprocessing. Check your CSV and labels.")
+
         #split data
         x_train, x_val, y_train, y_val = train_test_split(
-            x_norm, y, test_size=validation_split, random_state=42, stratify=y
+            x, y, test_size=validation_split, random_state=42, stratify=y
         )
         
+        self.scaler.fit(x_train)
+        x_train = self.scaler.transform(x_train)
+        x_val   = self.scaler.transform(x_val)
+
         # Callbacks
         callbacks = [
             tf.keras.callbacks.EarlyStopping(
@@ -102,9 +106,9 @@ class GestureDetector:
         
         #predict gesture
         predictions = self.model.predict(features_scaled, verbose=0)
-        predicted_class = np.argmax(predictions[0])
+        predicted_class = int(np.argmax(predictions[0]))
         confidence = float(np.max(predictions[0]))
-        gesture_name = self.gesture_labels[predicted_class]
+        gesture_name = self.gesture_labels[str(predicted_class)]
         
         return predicted_class, confidence, gesture_name
     
@@ -158,29 +162,37 @@ class GestureDetector:
     def preprocess_data(self, x, y):
         print("Preprocessing data...")
 
-        # Check for any invalid values
-        if np.any(np.isnan(x)):
-            print("Warning: Found NaN values in features. Removing affected samples...")
-            valid_mask = ~np.any(np.isnan(x), axis=1)
-            x = x[valid_mask]
-            y = y[valid_mask]
-        
-        if np.any(np.isinf(x)):
-            print("Warning: Found infinite values in features. Removing affected samples...")
-            valid_mask = ~np.any(np.isinf(x), axis=1)
-            x = x[valid_mask]
-            y = y[valid_mask]
-        
-        # Ensure labels are in the correct range
-        valid_labels = np.isin(y, list(self.gesture_labels.keys()))
-        if not np.all(valid_labels):
-            print("Warning: Found invalid labels. Removing affected samples...")
-            x = x[valid_labels]
-            y = y[valid_labels]
-        
+        # Features numeric & finite
+        x = x.astype(np.float32, copy=False)
+        invalid_mask = np.any(np.isnan(x) | np.isinf(x), axis=1)
+        if np.any(invalid_mask):
+            print(f"Warning: Found {invalid_mask.sum()} invalid samples (NaN/Inf). Removing...")
+            x = x[~invalid_mask]
+            y = y[~invalid_mask]
+
+        # Convert y to numeric -> int for training
+        y_num = pd.to_numeric(pd.Series(y), errors='coerce')
+        keep_numeric = y_num.notna()
+        if not keep_numeric.all():
+            print(f"Warning: Found {(~keep_numeric).sum()} non-numeric labels. Removing...")
+        x = x[keep_numeric.values]
+        y_num = y_num[keep_numeric].astype(int)
+
+        # Filter to allowed classes using string view, but KEEP int dtype for model
+        allowed = set(self.gesture_labels.keys())  # {'0','1','2','3','4'}
+        y_str = y_num.astype(str)
+        keep_allowed = y_str.isin(allowed)
+        if not keep_allowed.all():
+            print(f"Warning: Found {(~keep_allowed).sum()} invalid labels. Removing...")
+        x = x[keep_allowed.values]
+        y_int = y_num[keep_allowed].to_numpy(dtype=np.int32)  # <-- int labels for sparse CE
+
+        # Optional: show class counts
+        classes, counts = np.unique(y_int, return_counts=True)
+        print("Class counts:", dict(zip(classes.tolist(), counts.tolist())))
         print(f"After preprocessing: {len(x)} samples remaining")
-        
-        return x, y
+        return x, y_int
+
 
 
 if __name__ == "__main__":
