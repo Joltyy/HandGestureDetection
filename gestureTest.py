@@ -3,6 +3,7 @@ import numpy as np
 from handDetection import HandDetector
 from gestureDetectionTrain import GestureDetector
 import time
+from collections import deque
 import socket
 import json
 
@@ -22,6 +23,25 @@ class GestureTestSystem:
         self.hand_detector = HandDetector()
         self.gesture_detector = GestureDetector()
         
+        #allowing motion to capture state for punch
+        self.t_window = 16 #number of frames to consider
+        self.feature_window = deque(maxlen=self.t_window) #double-ended queue to hold features
+
+        #hysteresis variables for punch detection
+        self.punch_on_count = 0
+        self.punch_off_count = 0
+        self.punch_active = False
+        self.last_bbox_area = None #last bounding box area for punch detection
+
+        # thresholds – tune live if needed
+        self.THRUST_DIFF_HIGH = 0.025       # enter threshold
+        self.THRUST_DIFF_LOW  = 0.015       # stay threshold
+        self.AREA_GROWTH_HIGH = 0.10        # +10% area growth to enter
+        self.AREA_GROWTH_LOW  = 0.05        # +5% area growth to stay
+        self.ENTER_FRAMES = 2               # consecutive frames to enter
+        self.EXIT_FRAMES  = 3               # consecutive frames to exit
+
+
         #load
         if not self.gesture_detector.load_model("gesture_model.h5", "scaler.pkl"):
             raise Exception("Failed to load trained model!")
@@ -54,6 +74,29 @@ class GestureTestSystem:
                     )
                     features = self.hand_detector.getFeatures(hand_landmarks)
                     
+                    self.feature_window.append(features) #push into sliding window
+
+                    curr_d = features[-10:]
+                    thrust_score = 0.0
+                    if len(self.feature_window) >= 2:
+                        prev_d = self.feature_window[-2][-10:]
+                        thrust_score = float(np.mean(np.abs(curr_d - prev_d)))
+
+                    try:
+                        xs = [lm.x for lm in hand_landmarks.landmark]
+                        ys = [lm.y for lm in hand_landmarks.landmark]
+                        w = (max(xs) - min(xs))
+                        h = (max(ys) - min(ys))
+                    except:
+                        bbox_area = None
+
+                    area_growth = 0.0
+                    if self.last_bbox_area is not None and bbox_area is not None:
+                        area_growth = (bbox_area - self.last_bbox_area) / self.last_bbox_area
+                    if bbox_area is not None:
+                        self.last_bbox_area = bbox_area
+
+
                     #predict gesture
                     pred_class, confidence, gesture_name = self.gesture_detector.predict(features)
                     
@@ -70,6 +113,23 @@ class GestureTestSystem:
                         else:
                             smoothed_gesture = gesture_name
                         
+                        #punch gate with motion + hysteresis
+                        looks_like_punch = (smoothed_gesture == "punch") and confidence > 0.6
+                        enter_motion = (thrust_score > self.THRUST_DIFF_HIGH) or (area_growth > self.AREA_GROWTH_HIGH)
+                        stay_motion = (thrust_score > self.THRUST_DIFF_LOW) or (area_growth > self.AREA_GROWTH_LOW)
+
+                        wants_on = looks_like_punch and (enter_motion or (self.punch_active and stay_motion))
+
+                        if wants_on:
+                            self.punch_on_count = min(self.punch_on_count + 1, self.ENTER_FRAMES)
+                            self.punch_off_count = 0
+                        else:
+                            self.punch_off_count += 1
+                            if self.punch_off_count >= self.EXIT_FRAMES:
+                                self.punch_on_count = 0
+
+                        self.punch_active = (self.punch_on_count >= self.ENTER_FRAMES)
+
                         gesture_text = f"Gesture: {smoothed_gesture}"
                         confidence_text = f"Confidence: {confidence:.2f}"
                         
