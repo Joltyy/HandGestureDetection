@@ -11,6 +11,9 @@ public class pythonreciever : MonoBehaviour
     private Thread receiveThread;
     private bool running = false;
     private string latestMessage = "";
+    public int gestureIndex = 0;
+    public float gestureSpeed = 0f;
+
 
     void Start()
     {
@@ -47,7 +50,16 @@ public class pythonreciever : MonoBehaviour
                 if (!string.IsNullOrEmpty(data))
                 {
                     latestMessage = data;
-                    Debug.Log("Gesture Index: " + data);
+                    string[] parts = data.Split(',');
+                    if (parts.Length >= 1)
+                    {
+                        int.TryParse(parts[0], out gestureIndex);
+                    }
+                    if (parts.Length >= 2)
+                    {
+                        float.TryParse(parts[1], out gestureSpeed);
+                    }
+                    Debug.Log($"Gesture Index: {gestureIndex}, Speed: {gestureSpeed:F2}");
                 }
             }
         }
