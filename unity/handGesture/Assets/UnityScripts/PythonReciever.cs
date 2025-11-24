@@ -47,7 +47,18 @@ public class pythonreciever : MonoBehaviour
                 if (!string.IsNullOrEmpty(data))
                 {
                     latestMessage = data;
-                    Debug.Log("Gesture Index: " + data);
+                    // data format: "gestureIndex,speed"
+                    string[] parts = data.Split(',');
+                    int gestureIndex = 0;
+                    float speed = 0f;
+
+                    if (parts.Length >= 1)
+                        int.TryParse(parts[0], out gestureIndex);
+                    if (parts.Length >= 2)
+                        float.TryParse(parts[1], out speed);
+
+                    Debug.Log($"Gesture Index: {gestureIndex}  Speed: {speed:F2} px/s");
+                    // TODO: use gestureIndex and speed in your Unity logic (e.g., trigger animation, apply force, etc.)
                 }
             }
         }
