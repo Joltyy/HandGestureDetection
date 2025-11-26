@@ -6,6 +6,7 @@ import time
 from collections import deque
 import socket
 import json
+import math
 
 HOST = '127.0.0.1'
 PORT = 5005
@@ -47,7 +48,32 @@ class GestureTestSystem:
             raise Exception("Failed to load trained model!")
         
         print("Model loaded successfully!")
+        
+        self.prev_pos = None          # last stable centroid (x,y)
+        self.prev_time = None
+        self.speed_history = []
+        self.speed_history_size = 5
+        self.speed_idle_threshold = 15.0    # pixels/sec threshold to consider idle speed = 0
+
+        # gap tracking
+        self.in_gap = False
+        self.gap_start_pos = None
+        self.gap_start_time = None
+        self.max_gap_duration = 1.0   # ignore if gap exceeds (treat as reset)
+        self.max_plausible_speed = 2500.0  # px/s clamp
     
+    def _centroid(self, hand_landmarks, frame_shape):
+        h, w = frame_shape[:2]
+        # use finger tips + wrist for robustness
+        tip_indices = [0, 4, 8, 12, 16, 20]
+        pts = []
+        for i in tip_indices:
+            lm = hand_landmarks.landmark[i]
+            pts.append((lm.x * w, lm.y * h))
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        return (int(sum(xs) / len(xs)), int(sum(ys) / len(ys)))
+
     def run_realtime_test(self):
         cap = cv2.VideoCapture(0)
 
@@ -91,6 +117,13 @@ class GestureTestSystem:
                             dist = np.linalg.norm(wrist_px - prev_wrist_px)
                             speed = dist / dt  # pixels per second
                             moving = speed >= speed_threshold
+                    # DEBUG: log raw wrist speed computation
+                    # (prints every frame a hand is detected; useful to verify values)
+                    try:
+                        print(f"[DEBUG] wrist_px={wrist_px} dt={dt:.4f} speed={speed:.2f} moving={moving}")
+                    except Exception:
+                        # dt may be undefined on first frame; ignore
+                        pass
                     prev_wrist_px = wrist_px
                     prev_time = now
 
@@ -111,18 +144,23 @@ class GestureTestSystem:
                         else:
                             smoothed_gesture = gesture_name
 
-                        # only show speed info for punch
-                        if smoothed_gesture.lower() == "punch":
-                            state = "moving" if moving else "stationary"
-                            speed_text = f"Speed: {speed:.1f} px/s ({state})"
-                        else:
-                            speed_text = ""
+                        state = "moving" if moving else "stationary"
+                        speed_text = f"Speed: {speed:.1f} px/s ({state})"
+
+                        # show speed info for all gestures (helps debugging)
+                        state = "moving" if moving else "stationary"
+                        speed_text = f"Speed: {speed:.1f} px/s ({state})"
 
                         gesture_text = f"Gesture: {smoothed_gesture}"
                         confidence_text = f"Confidence: {confidence:.2f}"
 
                         # send to unity: "index,speed\n" (speed is 0 when stationary)
                         gesture_index = int(pred_class)
+                        # DEBUG: print what we send to Unity
+                        try:
+                            print(f"[DEBUG] Sending to Unity: index={gesture_index}, speed={speed:.2f}, gesture={smoothed_gesture}")
+                        except Exception:
+                            pass
                         conn.sendall(f"{gesture_index},{speed:.2f}\n".encode('utf-8'))
 
                     # display result and confidence on frame
@@ -131,7 +169,8 @@ class GestureTestSystem:
                     if confidence_text:
                         cv2.putText(frame, confidence_text, (10, 90),
                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-                    if smoothed_gesture.lower() == "punch":
+                    # draw speed_text for visibility (only if non-empty)
+                    if speed_text:
                         cv2.putText(frame, speed_text, (10, 130),
                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
 
