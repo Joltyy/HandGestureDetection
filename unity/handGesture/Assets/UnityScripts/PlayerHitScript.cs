@@ -50,6 +50,9 @@ public class PlayerHitScript : MonoBehaviour
     [Header("keybinds")]
     public InputAction punchAction;
 
+    [Header("ScoreManager")]
+    public scoreManager scoreMgr;
+
     void Start()
     {
         punchAction.Enable();
@@ -105,6 +108,8 @@ public class PlayerHitScript : MonoBehaviour
             Debug.Log($"Punch detected: speed={remoteSpeed:F2} (threshold {punchThreshold}) (last update: {remoteLastUpdate})");
             if (anim != null)
                 anim.SetTrigger("punched");
+            if (scoreMgr != null)
+                scoreMgr.AddGestureScore("punch", remoteSpeed);
             lastTriggerTimePunch = Time.time;
             handledThisFrame = true;
         }
