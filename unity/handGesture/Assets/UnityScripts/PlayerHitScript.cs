@@ -15,6 +15,7 @@ public class PlayerHitScript : MonoBehaviour
     public float triggerCooldown = 0.5f;
     [Tooltip("Gesture index value that represents 'punch' in your model. Set to -1 to ignore index check.")]
     public int punchGestureIndex = 1;
+
     [Header("Slap Settings")]
     [Tooltip("Gesture index value that represents 'slap' in your model. Set to -1 to ignore index check.")]
     public int slapGestureIndex = 2;
@@ -27,9 +28,21 @@ public class PlayerHitScript : MonoBehaviour
     [Tooltip("Animator float parameter name to set slap strength")]
     public string slapStrengthParam = "slapStrength";
 
-    // internal state for edge-detection and cooldown
+    [Header("Tickle Settings")]
+    [Tooltip("Gesture index value that represents 'tickle' in your model. Set to -1 to ignore index check.")]
+    public int tickleGestureIndex = 3;
+    [Tooltip("Speed (px/s) required to trigger a tickle when using the Python receiver")]
+    public float tickleSpeedThreshold = 20f;
+    [Tooltip("Animator trigger name for tickle")]
+    public string tickleTriggerName = "tickled";
+    [Tooltip("Seconds to ignore subsequent triggers after a tickle is fired")]
+    public float tickleCooldown = 0.6f;
+
+    // internal state for edge-detection and per-gesture cooldowns
     private float lastFrameSpeed = 0f;
-    private float lastTriggerTime = -999f;
+    private float lastTriggerTimePunch = -999f;
+    private float lastTriggerTimeSlap = -999f;
+    private float lastTriggerTimeTickle = -999f;
 
     [Header("Player Animator")]
     public Animator anim;
@@ -57,62 +70,88 @@ public class PlayerHitScript : MonoBehaviour
 
     void Update()
     {
-        bool triggered = false;
-        if (punchAction.WasPressedThisFrame())
-        {
-            triggered = true;
-        }
-        else if (pyReciever != null)
-        {
-            // read snapshot safely from the receiver
-            int remoteIndex;
-            float remoteSpeed;
-            string remoteLastUpdate;
-            pyReciever.GetLatest(out remoteIndex, out remoteSpeed, out remoteLastUpdate);
+        // thresholds per gesture
+        float punchThreshold = speedThreshold;
+        float slapThreshold = slapSpeedThreshold;
+        float tickleThreshold = tickleSpeedThreshold;
 
-            // edge detection: trigger only when speed rises past thresholds (prevent multiple triggers)
-            bool cooldownOk = (Time.time - lastTriggerTime) >= triggerCooldown;
-
-            // Check for punch (existing behavior)
-            // bool punchIndexOk = (punchGestureIndex < 0) || (remoteIndex == punchGestureIndex);
-            // bool punchRising = (lastFrameSpeed < speedThreshold) && (remoteSpeed >= speedThreshold);
-            // if (punchRising && cooldownOk && punchIndexOk)
-            // {
-            //     Debug.Log($"Gesture speed {remoteSpeed:F2} >= {speedThreshold} (rising edge) — triggering punch (last update: {remoteLastUpdate})");
-            //     triggered = true;
-            //     lastTriggerTime = Time.time;
-            //     // set animator trigger for punch below when applying animation
-            // }
-
-            // Check for slap: use its own index/threshold
-            bool slapIndexOk = (slapGestureIndex < 0) || (remoteIndex == slapGestureIndex);
-            bool slapRising = (lastFrameSpeed < slapSpeedThreshold) && (remoteSpeed >= slapSpeedThreshold);
-            if (!triggered && slapRising && cooldownOk && slapIndexOk)
-            {
-                // compute normalized strength for animator
-                float strength = Mathf.Clamp(remoteSpeed * slapSpeedToStrength, 0f, 1f);
-                Debug.Log($"Slap detected: speed={remoteSpeed:F2} -> strength={strength:F2} (threshold {slapSpeedThreshold}) (last update: {remoteLastUpdate})");
-                // set animator params and trigger
-                if (anim != null)
-                {
-                    if (!string.IsNullOrEmpty(slapStrengthParam))
-                        anim.SetFloat(slapStrengthParam, strength);
-                    if (!string.IsNullOrEmpty(slapTriggerName))
-                        anim.SetTrigger(slapTriggerName);
-                }
-                lastTriggerTime = Time.time;
-                // mark handled so we don't also trigger punch
-                triggered = false; // slap uses its own animation, don't set punch trigger
-            }
-
-            // update lastFrameSpeed for next-frame edge detection
-            lastFrameSpeed = remoteSpeed;
-        }
-
-        if (triggered)
+        // manual punch key still works
+        bool manualPunch = punchAction.WasPressedThisFrame();
+        if (manualPunch)
         {
             if (anim != null)
                 anim.SetTrigger("punched");
+            lastTriggerTimePunch = Time.time;
+            // update lastFrameSpeed conservatively
+            lastFrameSpeed = Mathf.Max(lastFrameSpeed, 0f);
+            return;
         }
+
+        if (pyReciever == null)
+            return;
+
+        int remoteIndex;
+        float remoteSpeed;
+        string remoteLastUpdate;
+        pyReciever.GetLatest(out remoteIndex, out remoteSpeed, out remoteLastUpdate);
+
+        bool handledThisFrame = false;
+
+        // Punch detection (rising edge)
+        bool punchIndexOk = (punchGestureIndex < 0) || (remoteIndex == punchGestureIndex);
+        bool punchRising = (lastFrameSpeed < punchThreshold) && (remoteSpeed >= punchThreshold);
+        if (!handledThisFrame && punchRising && ((Time.time - lastTriggerTimePunch) >= triggerCooldown) && punchIndexOk)
+        {
+            Debug.Log($"Punch detected: speed={remoteSpeed:F2} (threshold {punchThreshold}) (last update: {remoteLastUpdate})");
+            if (anim != null)
+                anim.SetTrigger("punched");
+            lastTriggerTimePunch = Time.time;
+            handledThisFrame = true;
+        }
+
+        // Slap detection
+        bool slapIndexOk = (slapGestureIndex < 0) || (remoteIndex == slapGestureIndex);
+        bool slapRising = (lastFrameSpeed < slapThreshold) && (remoteSpeed >= slapThreshold);
+        // Always log when motion surpasses slap threshold (helpful while animations aren't set)
+        if (slapRising)
+        {
+            Debug.Log($"[Motion] Slap speed threshold exceeded: speed={remoteSpeed:F2} (threshold {slapThreshold}) predictedIndex={remoteIndex} (last update: {remoteLastUpdate})");
+        }
+
+        if (!handledThisFrame && slapRising && ((Time.time - lastTriggerTimeSlap) >= triggerCooldown) && slapIndexOk)
+        {
+            float strength = Mathf.Clamp(remoteSpeed * slapSpeedToStrength, 0f, 1f);
+            Debug.Log($"Slap detected: speed={remoteSpeed:F2} -> strength={strength:F2} (threshold {slapSpeedThreshold}) (last update: {remoteLastUpdate})");
+            if (anim != null)
+            {
+                if (!string.IsNullOrEmpty(slapStrengthParam))
+                    anim.SetFloat(slapStrengthParam, strength);
+                if (!string.IsNullOrEmpty(slapTriggerName))
+                    anim.SetTrigger(slapTriggerName);
+            }
+            lastTriggerTimeSlap = Time.time;
+            handledThisFrame = true;
+        }
+
+        // Tickle detection
+        bool tickleIndexOk = (tickleGestureIndex < 0) || (remoteIndex == tickleGestureIndex);
+        bool tickleRising = (lastFrameSpeed < tickleThreshold) && (remoteSpeed >= tickleThreshold);
+        // Always log when motion surpasses tickle threshold
+        if (tickleRising)
+        {
+            Debug.Log($"[Motion] Tickle speed threshold exceeded: speed={remoteSpeed:F2} (threshold {tickleThreshold}) predictedIndex={remoteIndex} (last update: {remoteLastUpdate})");
+        }
+
+        if (!handledThisFrame && tickleRising && ((Time.time - lastTriggerTimeTickle) >= tickleCooldown) && tickleIndexOk)
+        {
+            Debug.Log($"Tickle detected: speed={remoteSpeed:F2} (threshold {tickleThreshold}) (last update: {remoteLastUpdate})");
+            if (anim != null && !string.IsNullOrEmpty(tickleTriggerName))
+                anim.SetTrigger(tickleTriggerName);
+            lastTriggerTimeTickle = Time.time;
+            handledThisFrame = true;
+        }
+
+        // update lastFrameSpeed for next-frame edge detection
+        lastFrameSpeed = remoteSpeed;
     }
 }
