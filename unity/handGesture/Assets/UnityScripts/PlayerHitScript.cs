@@ -53,22 +53,14 @@ public class PlayerHitScript : MonoBehaviour
     [Header("ScoreManager")]
     public scoreManager scoreMgr;
 
+    [Header("Damage PopUp")]
+    public DamagePopUp damagePopUpPrefab;
+    public float popupVerticalOffset = 2f;
+    public Transform popupParent;
+
     void Start()
     {
         punchAction.Enable();
-        if (pyReciever == null)
-        {
-            pyReciever = FindObjectOfType<pythonreciever>();
-            if (pyReciever == null)
-            {
-                Debug.LogWarning("pythonreciever not found in scene — assign it in the inspector or run the receiver.");
-            }
-            else
-            {
-                Debug.Log($"Auto-assigned pythonreciever from scene. Receiver GameObject: {pyReciever.gameObject.name}");
-                Debug.Log($"Receiver last update: {pyReciever.lastUpdateUtc}");
-            }
-        }
     }
 
     void Update()
@@ -109,7 +101,10 @@ public class PlayerHitScript : MonoBehaviour
             if (anim != null)
                 anim.SetTrigger("punched");
             if (scoreMgr != null)
-                scoreMgr.AddGestureScore("punch", remoteSpeed);
+            {
+                int added = scoreMgr.AddGestureScore("punch", remoteSpeed);
+                TryShowPopup(added);
+            }
             lastTriggerTimePunch = Time.time;
             handledThisFrame = true;
         }
@@ -158,5 +153,26 @@ public class PlayerHitScript : MonoBehaviour
 
         // update lastFrameSpeed for next-frame edge detection
         lastFrameSpeed = remoteSpeed;
+    }
+
+    //show damage popup
+    void TryShowPopup(int amount)
+    {
+        if (damagePopUpPrefab == null) return;
+        if (amount <= 0) return;
+
+        Vector3 pos = transform.position + Vector3.up * popupVerticalOffset;
+
+        if (popupParent != null)
+        {
+            var inst = Instantiate(damagePopUpPrefab, popupParent);
+            inst.transform.position = pos;
+            inst.Init(amount);
+        }
+        else
+        {
+            // fallback: for non-UGUI (3D TextMeshPro) prefabs
+            DamagePopUp.Spawn(damagePopUpPrefab, pos, amount);
+        }
     }
 }
