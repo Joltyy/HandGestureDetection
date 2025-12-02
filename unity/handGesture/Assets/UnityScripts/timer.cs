@@ -73,7 +73,7 @@ public class timer : MonoBehaviour
     public Vector2 backgroundPadding = new Vector2(18f, 8f);
 
     [Tooltip("If true will try to parent/timeLabel to the slider's fillRect so it's visually inside the fill")]
-    public bool placeLabelInsideFill = true;
+    public bool placeLabelInsideFill = false; // set default to false so it stays static
     [Tooltip("If true places the time label above the slider instead of inside it")]
     public bool placeLabelAboveSlider = false;
     [Tooltip("Vertical offset in pixels when placing label above the slider")]
@@ -123,6 +123,11 @@ public class timer : MonoBehaviour
                 handleBaseScale = handleGameObject.transform.localScale;
             }
 
+            // REMOVE re-parenting so label stays static
+            // if (placeLabelInsideFill && timeSlider.fillRect != null && timeLabel != null)
+            // {
+            //     timeLabel.rectTransform.SetParent(timeSlider.fillRect, false);
+            // }
             // try to parent/timeLabel to fillRect so it's visually inside the slider
             if (placeLabelInsideFill && timeSlider.fillRect != null && timeLabel != null && !placeLabelAboveSlider)
             {
@@ -134,6 +139,7 @@ public class timer : MonoBehaviour
             duration = timeRemaining;
         }
 
+        // keep label centered within its current parent, but static
         // ensure the label is centered in its parent (so it appears "inside" the slider) or positioned above the slider
         if (timeLabel != null)
         {
@@ -141,7 +147,8 @@ public class timer : MonoBehaviour
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
+            // Do not change anchoredPosition if you manually placed it in the scene:
+            // rt.anchoredPosition = Vector2.zero;
             timeLabel.raycastTarget = false; // avoid blocking UI
 
             // TMP styling setup

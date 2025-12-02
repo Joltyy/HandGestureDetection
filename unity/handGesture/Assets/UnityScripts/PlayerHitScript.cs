@@ -56,19 +56,6 @@ public class PlayerHitScript : MonoBehaviour
     void Start()
     {
         punchAction.Enable();
-        if (pyReciever == null)
-        {
-            pyReciever = FindObjectOfType<pythonreciever>();
-            if (pyReciever == null)
-            {
-                Debug.LogWarning("pythonreciever not found in scene — assign it in the inspector or run the receiver.");
-            }
-            else
-            {
-                Debug.Log($"Auto-assigned pythonreciever from scene. Receiver GameObject: {pyReciever.gameObject.name}");
-                Debug.Log($"Receiver last update: {pyReciever.lastUpdateUtc}");
-            }
-        }
     }
 
     void Update()
@@ -109,7 +96,10 @@ public class PlayerHitScript : MonoBehaviour
             if (anim != null)
                 anim.SetTrigger("punched");
             if (scoreMgr != null)
-                scoreMgr.AddGestureScore("punch", remoteSpeed);
+            {
+                int added = scoreMgr.AddGestureScore("punch", remoteSpeed);
+                // TryShowPopup(added);
+            }
             lastTriggerTimePunch = Time.time;
             handledThisFrame = true;
         }
