@@ -548,6 +548,53 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!1 &1096471913 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
+  m_PrefabInstance: {fileID: 1257688195}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &1096471914 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
+  m_PrefabInstance: {fileID: 1257688195}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1096471916
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1096471913}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf5f54c53c85ec4469191f00590a8452, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHitScript
+  pyReciever: {fileID: 2145016558}
+  speedThreshold: 100
+  triggerCooldown: 0.5
+  punchGestureIndex: 1
+  slapGestureIndex: 2
+  slapSpeedThreshold: 100
+  slapSpeedToStrength: 0.0033333334
+  slapTriggerName: isSlap
+  slapStrengthParam: slapStrength
+  tickleGestureIndex: 3
+  tickleSpeedThreshold: 100
+  tickleBoolName: isTickle
+  ticklePointsPerSecond: 2
+  anim: {fileID: 1096471914}
+  punchAction:
+    m_Name: Punch
+    m_Type: 0
+    m_ExpectedControlType: 
+    m_Id: 94e41bf2-7e01-4caf-937e-9981beb6fbe7
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings: []
+    m_Flags: 0
+  scoreMgr: {fileID: 1026963528}
+  punchTriggerName: isPunch
 --- !u!1 &1136132539 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2470826314248763688, guid: f2fb5db08ba14834d8d369e705ae955a, type: 3}
@@ -611,7 +658,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!1001 &1154940663
+--- !u!1001 &1257688195
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -619,71 +666,62 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 3926322521528510390, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
-      propertyPath: scoreMgr
-      value: 
-      objectReference: {fileID: 1026963528}
-    - target: {fileID: 3926322521528510390, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
-      propertyPath: pyReciever
-      value: 
-      objectReference: {fileID: 2145016558}
-    - target: {fileID: 3926322521528510390, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
-      propertyPath: popupParent
-      value: 
-      objectReference: {fileID: 933666192}
-    - target: {fileID: 3926322521528510390, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
-      propertyPath: damagePopUpPrefab
-      value: 
-      objectReference: {fileID: 1136132541}
-    - target: {fileID: 7197948500994851157, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
-      propertyPath: m_Name
-      value: player
-      objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 9.67
+      value: 9.61
       objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.030000687
-      objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
-      propertyPath: m_LocalPosition.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.03
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
       propertyPath: m_LocalRotation.w
       value: 0.7071068
       objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
       propertyPath: m_LocalRotation.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
       propertyPath: m_LocalRotation.y
       value: 0.7071068
       objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: 90
       objectReference: {fileID: 0}
-    - target: {fileID: 7543406964511529967, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    - target: {fileID: -8679921383154817045, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
+      propertyPath: m_Name
+      value: The Boss@Idle
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 2b36bc78d5ba44b7cb7b9109ae535f7d, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 2437900b1c464274ebeffa43ff20b86c, type: 3}
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1096471916}
+  m_SourcePrefab: {fileID: 100100000, guid: c491ce83dabd7454db8254fefa7c3d55, type: 3}
 --- !u!1001 &1989145404
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1120,6 +1158,6 @@ SceneRoots:
   - {fileID: 244414312}
   - {fileID: 661496681}
   - {fileID: 2142110433}
-  - {fileID: 1154940663}
   - {fileID: 1989145404}
   - {fileID: 20191171}
+  - {fileID: 1257688195}

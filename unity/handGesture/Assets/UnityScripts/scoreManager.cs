@@ -42,6 +42,14 @@ public class scoreManager : MonoBehaviour
         return added;
     }
 
+    // Lightweight helper to add a small amount of points (e.g., for continuous tickle)
+    public void AddPoints(int points)
+    {
+        if (points <= 0) return;
+        currentScore += points;
+        UpdateScoreUI();
+    }
+
     void UpdateScoreUI()
     {
         if (scoreText != null)
