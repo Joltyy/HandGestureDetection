@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 7501449807572718275}
   - component: {fileID: 8928853555862268460}
   - component: {fileID: 4361523741013327522}
-  - component: {fileID: 7478095175118602284}
   m_Layer: 5
   m_Name: DamagePopup
   m_TagString: Untagged
@@ -137,21 +136,3 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!114 &7478095175118602284
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2470826314248763688}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 48753fd8262aa7b4a9b285f453a09a28, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  scoreText: {fileID: 4361523741013327522}
-  currentScore: 0
-  multiplierFactor: 0.2
-  basePunch: 10
-  baseSlap: 8
-  baseTickle: 5

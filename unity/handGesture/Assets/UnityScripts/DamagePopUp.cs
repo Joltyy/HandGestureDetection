@@ -7,56 +7,56 @@ public class DamagePopUp : MonoBehaviour
     [Header("Text")]
     public TextMeshProUGUI text;
 
-    [Header("Motion")]
+    [Header("Animation")]
     public float lifetime = 0.8f;
-    public Vector3 initialVelocity = new Vector3(0f, 1.6f, 0f);
-    public float horizontalJitter = 0.25f;
-    public float gravity = -2.5f;
-    public float scaleOverLife = 0.9f; // 1 = constant, <1 shrinks
+    public Vector2 startOffset = Vector2.zero;
+    public Vector2 riseOffset = new Vector2(0f, 80f);
+    public float horizontalJitter = 12f;
+    public AnimationCurve ease = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
     [Header("Fade")]
     public float fadeOutFraction = 0.35f;
 
+    private RectTransform _rt;
     private float _t;
     private Color _baseColor;
-    private Vector3 _velocity;
+    private Vector2 _spawnAnchoredPos;
+    private bool _initialized = false; // guard
 
     void Awake()
     {
-        if (text == null)
-            text = GetComponentInChildren<TextMeshProUGUI>();
+        _rt = GetComponent<RectTransform>();
+        if (text == null) text = GetComponentInChildren<TextMeshProUGUI>();
+        if (text != null) _baseColor = text.color;
     }
 
     void OnEnable()
     {
-        _t = 0f;
-        if (text != null)
-            _baseColor = text.color;
+        if (!_initialized) return; // do nothing until Init() called
 
-        // randomize slight horizontal offset and velocity
-        var rnd = new Vector2(Random.Range(-horizontalJitter, horizontalJitter), Random.Range(-horizontalJitter, horizontalJitter));
-        transform.position += new Vector3(rnd.x, 0f, rnd.y);
-        _velocity = initialVelocity + new Vector3(rnd.x, 0f, rnd.y);
+        _t = 0f;
+
+        float jx = Random.Range(-horizontalJitter, horizontalJitter);
+        _spawnAnchoredPos = _rt.anchoredPosition + startOffset + new Vector2(jx, 0f);
+
+        if (text != null)
+        {
+            var c = text.color;
+            c.a = _baseColor.a;
+            text.color = c;
+        }
     }
 
     void Update()
     {
+        if (!_initialized) return; // skip when not initialized
+
         _t += Time.deltaTime;
-
-        // simple rise + gravity
-        _velocity.y += gravity * Time.deltaTime;
-        transform.position += _velocity * Time.deltaTime;
-
-        // face camera (billboard)
-        if (Camera.main != null)
-            transform.forward = Camera.main.transform.forward;
-
-        // scale over life
         float life01 = Mathf.Clamp01(_t / lifetime);
-        float s = Mathf.Lerp(1f, scaleOverLife, life01);
-        transform.localScale = Vector3.one * s;
 
-        // fade out
+        float e = ease.Evaluate(life01);
+        _rt.anchoredPosition = _spawnAnchoredPos + riseOffset * e;
+
         float fadeStart = 1f - Mathf.Clamp01(fadeOutFraction);
         float alpha = life01 < fadeStart ? 1f : Mathf.InverseLerp(1f, fadeStart, life01);
         if (text != null)
@@ -72,17 +72,31 @@ public class DamagePopUp : MonoBehaviour
 
     public void Init(int amount, Color? color = null)
     {
+        _initialized = true; // enable animation
+
         if (text != null)
         {
             text.text = $"+{amount}";
             if (color.HasValue)
+            {
+                _baseColor = color.Value;
                 text.color = color.Value;
+            }
+            else
+            {
+                _baseColor = text.color;
+            }
         }
+
+        // force OnEnable setup if already enabled
+        OnEnable();
     }
 
-    public static DamagePopUp Spawn(DamagePopUp prefab, Vector3 worldPos, int amount, Color? color = null)
+    public static DamagePopUp Spawn(DamagePopUp prefab, Transform parent, Vector2 anchoredPos, int amount, Color? color = null)
     {
-        var inst = Instantiate(prefab, worldPos, Quaternion.identity);
+        var inst = Instantiate(prefab, parent);
+        var rt = inst.GetComponent<RectTransform>();
+        rt.anchoredPosition = anchoredPos;
         inst.Init(amount, color);
         return inst;
     }

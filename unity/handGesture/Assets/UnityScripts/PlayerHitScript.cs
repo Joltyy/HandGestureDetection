@@ -53,11 +53,6 @@ public class PlayerHitScript : MonoBehaviour
     [Header("ScoreManager")]
     public scoreManager scoreMgr;
 
-    [Header("Damage PopUp")]
-    public DamagePopUp damagePopUpPrefab;
-    public float popupVerticalOffset = 2f;
-    public Transform popupParent;
-
     void Start()
     {
         punchAction.Enable();
@@ -103,7 +98,7 @@ public class PlayerHitScript : MonoBehaviour
             if (scoreMgr != null)
             {
                 int added = scoreMgr.AddGestureScore("punch", remoteSpeed);
-                TryShowPopup(added);
+                // TryShowPopup(added);
             }
             lastTriggerTimePunch = Time.time;
             handledThisFrame = true;
@@ -153,26 +148,5 @@ public class PlayerHitScript : MonoBehaviour
 
         // update lastFrameSpeed for next-frame edge detection
         lastFrameSpeed = remoteSpeed;
-    }
-
-    //show damage popup
-    void TryShowPopup(int amount)
-    {
-        if (damagePopUpPrefab == null) return;
-        if (amount <= 0) return;
-
-        Vector3 pos = transform.position + Vector3.up * popupVerticalOffset;
-
-        if (popupParent != null)
-        {
-            var inst = Instantiate(damagePopUpPrefab, popupParent);
-            inst.transform.position = pos;
-            inst.Init(amount);
-        }
-        else
-        {
-            // fallback: for non-UGUI (3D TextMeshPro) prefabs
-            DamagePopUp.Spawn(damagePopUpPrefab, pos, amount);
-        }
     }
 }

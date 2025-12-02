@@ -46,7 +46,7 @@ public class timer : MonoBehaviour
     public float flareSpeed = 4f;
 
     [Tooltip("If true will try to parent/timeLabel to the slider's fillRect so it's visually inside the fill")]
-    public bool placeLabelInsideFill = true;
+    public bool placeLabelInsideFill = false; // set default to false so it stays static
 
     bool timerIsRunning = false;
 
@@ -86,25 +86,26 @@ public class timer : MonoBehaviour
                 handleBaseScale = handleGameObject.transform.localScale;
             }
 
-            // try to parent/timeLabel to fillRect so it's visually inside the slider
-            if (placeLabelInsideFill && timeSlider.fillRect != null && timeLabel != null)
-            {
-                timeLabel.rectTransform.SetParent(timeSlider.fillRect, false);
-            }
+            // REMOVE re-parenting so label stays static
+            // if (placeLabelInsideFill && timeSlider.fillRect != null && timeLabel != null)
+            // {
+            //     timeLabel.rectTransform.SetParent(timeSlider.fillRect, false);
+            // }
         }
         else
         {
             duration = timeRemaining;
         }
 
-        // ensure the label is centered in its parent (so it appears "inside" the slider)
+        // keep label centered within its current parent, but static
         if (timeLabel != null)
         {
             var rt = timeLabel.rectTransform;
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
+            // Do not change anchoredPosition if you manually placed it in the scene:
+            // rt.anchoredPosition = Vector2.zero;
             timeLabel.raycastTarget = false; // avoid blocking UI
         }
 
