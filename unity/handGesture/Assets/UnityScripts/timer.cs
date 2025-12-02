@@ -45,8 +45,41 @@ public class timer : MonoBehaviour
     [Tooltip("Flare pulse speed")]
     public float flareSpeed = 4f;
 
+    [Header("Time Label Styling")]
+    [Tooltip("Use TMP rich text formatting to present minutes and seconds with different sizes")]
+    public bool useRichTextStyle = true;
+    [Tooltip("Main font size for minutes (px) when using rich style")]
+    public int mainFontSize = 56;
+    [Tooltip("Font size for seconds (px) when using rich style")]
+    public int secondsFontSize = 40;
+    [Tooltip("Enable a simple UI Outline component on the TMP label")]
+    public bool useOutline = true;
+    [Tooltip("Outline color")]
+    public Color outlineColor = Color.black;
+    [Tooltip("Outline thickness (effectDistance in px)")]
+    public Vector2 outlineDistance = new Vector2(2f, -2f);
+    [Tooltip("Enable a simple UI Shadow component on the TMP label")]
+    public bool useShadow = true;
+    [Tooltip("Shadow color")]
+    public Color shadowColor = new Color(0f, 0f, 0f, 0.5f);
+    [Tooltip("Shadow distance in px")]
+    public Vector2 shadowDistance = new Vector2(2f, -2f);
+
+    [Tooltip("Optional Image placed behind the text to improve legibility (assign a UI Image)")]
+    public Image timeLabelBackground;
+    [Tooltip("Background color (alpha controls opacity)")]
+    public Color backgroundColor = new Color(0f, 0f, 0f, 0.45f);
+    [Tooltip("Padding (x=horizontal, y=vertical) added to background around the text in px")]
+    public Vector2 backgroundPadding = new Vector2(18f, 8f);
+
     [Tooltip("If true will try to parent/timeLabel to the slider's fillRect so it's visually inside the fill")]
     public bool placeLabelInsideFill = false; // set default to false so it stays static
+    [Tooltip("If true places the time label above the slider instead of inside it")]
+    public bool placeLabelAboveSlider = false;
+    [Tooltip("Vertical offset in pixels when placing label above the slider")]
+    public float labelAboveOffsetY = 8f;
+    [Tooltip("Show centiseconds in the label (2 digits). Display format: mm:ss:cc")]
+    public bool showCentiseconds = true;
 
     bool timerIsRunning = false;
 
@@ -63,6 +96,10 @@ public class timer : MonoBehaviour
     GameObject handleGameObject;
     Image handleImage;
     Vector3 handleBaseScale;
+
+    // internal references for styling components
+    Outline tmpOutline;
+    Shadow tmpShadow;
 
     void Start()
     {
@@ -91,6 +128,11 @@ public class timer : MonoBehaviour
             // {
             //     timeLabel.rectTransform.SetParent(timeSlider.fillRect, false);
             // }
+            // try to parent/timeLabel to fillRect so it's visually inside the slider
+            if (placeLabelInsideFill && timeSlider.fillRect != null && timeLabel != null && !placeLabelAboveSlider)
+            {
+                timeLabel.rectTransform.SetParent(timeSlider.fillRect, false);
+            }
         }
         else
         {
@@ -98,6 +140,7 @@ public class timer : MonoBehaviour
         }
 
         // keep label centered within its current parent, but static
+        // ensure the label is centered in its parent (so it appears "inside" the slider) or positioned above the slider
         if (timeLabel != null)
         {
             var rt = timeLabel.rectTransform;
@@ -107,6 +150,63 @@ public class timer : MonoBehaviour
             // Do not change anchoredPosition if you manually placed it in the scene:
             // rt.anchoredPosition = Vector2.zero;
             timeLabel.raycastTarget = false; // avoid blocking UI
+
+            // TMP styling setup
+            timeLabel.richText = true;
+            timeLabel.enableAutoSizing = false;
+            timeLabel.fontSize = mainFontSize;
+            timeLabel.alignment = TextAlignmentOptions.Center;
+            timeLabel.fontStyle = FontStyles.Bold;
+
+            // add or configure Outline component
+            if (useOutline)
+            {
+                tmpOutline = timeLabel.gameObject.GetComponent<Outline>();
+                if (tmpOutline == null) tmpOutline = timeLabel.gameObject.AddComponent<Outline>();
+                tmpOutline.effectColor = outlineColor;
+                tmpOutline.effectDistance = outlineDistance;
+            }
+            else
+            {
+                tmpOutline = timeLabel.gameObject.GetComponent<Outline>();
+                if (tmpOutline != null) Destroy(tmpOutline);
+            }
+
+            // add or configure Shadow component
+            if (useShadow)
+            {
+                tmpShadow = timeLabel.gameObject.GetComponent<Shadow>();
+                if (tmpShadow == null) tmpShadow = timeLabel.gameObject.AddComponent<Shadow>();
+                tmpShadow.effectColor = shadowColor;
+                tmpShadow.effectDistance = shadowDistance;
+            }
+            else
+            {
+                tmpShadow = timeLabel.gameObject.GetComponent<Shadow>();
+                if (tmpShadow != null) Destroy(tmpShadow);
+            }
+
+            // background image setup
+            if (timeLabelBackground != null)
+            {
+                timeLabelBackground.color = backgroundColor;
+                // ensure background is behind the text
+                timeLabelBackground.rectTransform.SetAsFirstSibling();
+                // initial sizing will be handled in UpdateDisplay
+            }
+        }
+
+        // If requested, place the label above the slider (reparent to slider's parent so it sits above)
+        if (placeLabelAboveSlider && timeSlider != null && timeLabel != null)
+        {
+            var sliderRT = timeSlider.GetComponent<RectTransform>();
+            var labelRT = timeLabel.rectTransform;
+            // parent to the same parent as slider so it's not clipped inside fill
+            labelRT.SetParent(sliderRT.parent, false);
+            // compute offset: place above slider by half slider height + offset
+            float sliderHalf = sliderRT.rect.height * 0.5f;
+            float labelHalf = labelRT.rect.height * 0.5f;
+            labelRT.anchoredPosition = new Vector2(sliderRT.anchoredPosition.x, sliderRT.anchoredPosition.y + sliderHalf + labelHalf + labelAboveOffsetY);
         }
 
         // prepare flare
@@ -186,11 +286,42 @@ public class timer : MonoBehaviour
 
         if (timeLabel != null)
         {
-            int minutes = Mathf.FloorToInt(time / 60f);
-            int seconds = Mathf.FloorToInt(time % 60f);
-            timeLabel.text = string.Format("{0:00}:{1:00}", minutes, seconds);
-            // optional: tint label to match current fill color
+            int totalSeconds = Mathf.FloorToInt(time);
+            int minutes = totalSeconds / 60;
+            int seconds = totalSeconds % 60;
+            int centis = Mathf.FloorToInt((time - totalSeconds) * 100f);
+
+            if (showCentiseconds)
+            {
+                // single-size display including centiseconds (mm:ss:cc)
+                timeLabel.text = string.Format("{0:00}:{1:00}:{2:00}", minutes, seconds, centis);
+                timeLabel.fontSize = mainFontSize;
+            }
+            else if (useRichTextStyle)
+            {
+                // mixed sizes for minutes and seconds using TMP rich text
+                int mSize = Mathf.Max(1, mainFontSize);
+                int sSize = Mathf.Max(1, secondsFontSize);
+                timeLabel.text = $"<size={mSize}>{minutes:00}</size><size={sSize}>:{seconds:00}</size>";
+            }
+            else
+            {
+                // same-size minutes and seconds
+                timeLabel.text = string.Format("{0:00}:{1:00}", minutes, seconds);
+                timeLabel.fontSize = mainFontSize;
+            }
+
+            // tint label to match current fill color (keeps contrast)
             timeLabel.color = currentColor;
+
+            // adjust background to fit text
+            if (timeLabelBackground != null)
+            {
+                // request preferred values from TMP for current text
+                Vector2 pref = timeLabel.GetPreferredValues(timeLabel.text);
+                Vector2 bgSize = new Vector2(pref.x + backgroundPadding.x * 2f, pref.y + backgroundPadding.y * 2f);
+                timeLabelBackground.rectTransform.sizeDelta = bgSize;
+            }
         }
 
         // handle logic: show when remaining <= handleShowThreshold, pulse and tint when visible
