@@ -18,7 +18,6 @@ class GestureDetector:
             '1': "punch",
             '2': "slap",
             '3': "tickle",
-            '4': "jitak"
         }
         self.num_classes = len(self.gesture_labels)
         self.input_dim = 70  #60 relative coords + 10 distances
@@ -27,22 +26,23 @@ class GestureDetector:
         self.model = tf.keras.Sequential([
             #Input layer
             tf.keras.layers.Input(shape=(self.input_dim,)), 
-            tf.keras.layers.Dense(128, activation='relu'),
+
+            tf.keras.layers.Dense(64, activation='relu'),
             tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dropout(0.3),
+            tf.keras.layers.Dropout(0.2),
 
             #Layer 1
             tf.keras.layers.Dense(64, activation='relu'),
             tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dropout(0.3),
+            tf.keras.layers.Dropout(0.2),
 
             #Layer 2
             tf.keras.layers.Dense(64, activation='relu'),
             tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dropout(0.3),
+            tf.keras.layers.Dropout(0.2),
 
             #Output layer
-            tf.keras.layers.Dense(self.num_classes, activation='softmax')
+            tf.keras.layers.Dense(self.num_classes)
         ])
 
         self.model.compile(
@@ -53,7 +53,7 @@ class GestureDetector:
 
         return self.model
     
-    def train(self, x, y, validation_split=0.2, epochs=100, batch_size=32):
+    def train(self, x, y, validation_split=0.2, epochs=100, batch_size=16):
         if self.model is None:
             self.create_model()
         if x is None or len(x) == 0:
@@ -61,7 +61,7 @@ class GestureDetector:
 
         #split data
         x_train, x_val, y_train, y_val = train_test_split(
-            x, y, test_size=validation_split, random_state=42, stratify=y
+            x, y, test_size=validation_split, random_state=0, stratify=y
         )
         
         self.scaler.fit(x_train)
@@ -72,7 +72,7 @@ class GestureDetector:
         callbacks = [
             tf.keras.callbacks.EarlyStopping(
                 monitor='val_loss', 
-                patience=10, 
+                patience=20, 
                 restore_best_weights=True
             ),
             tf.keras.callbacks.ReduceLROnPlateau(
@@ -99,17 +99,13 @@ class GestureDetector:
         if self.model is None:
             print("Model is not loaded or trained.")
             return None, None, None
-        
-        #reshape and normalize feature
         features = np.array(features).reshape(1, -1)
         features_scaled = self.scaler.transform(features)
-        
-        #predict gesture
-        predictions = self.model.predict(features_scaled, verbose=0)
-        predicted_class = int(np.argmax(predictions[0]))
-        confidence = float(np.max(predictions[0]))
+        logits = self.model.predict(features_scaled, verbose=0)[0]
+        probs = tf.nn.softmax(logits).numpy()
+        predicted_class = int(np.argmax(probs))
+        confidence = float(np.max(probs))
         gesture_name = self.gesture_labels[str(predicted_class)]
-        
         return predicted_class, confidence, gesture_name
     
     def evaluate(self, x_test, y_test):
@@ -125,14 +121,14 @@ class GestureDetector:
         
         return loss, accuracy
 
-    def save_model(self, model_path="gesture_model.h5", scaler_path="scaler.pkl"):
+    def save_model(self, model_path="gesture_model.keras", scaler_path="scaler.pkl"):
         if self.model is not None:
             self.model.save(model_path)
             joblib.dump(self.scaler, scaler_path)
             print(f"Model saved to {model_path}")
             print(f"Scaler saved to {scaler_path}")
 
-    def load_model(self, model_path="gesture_model.h5", scaler_path="scaler.pkl"):
+    def load_model(self, model_path="gesture_model.keras", scaler_path="scaler.pkl"):
         if os.path.exists(model_path) and os.path.exists(scaler_path):
             self.model = tf.keras.models.load_model(model_path)
             self.scaler = joblib.load(scaler_path)
