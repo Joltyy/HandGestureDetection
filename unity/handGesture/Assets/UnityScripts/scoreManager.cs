@@ -29,7 +29,7 @@ public class scoreManager : MonoBehaviour
 
     }
 
-    public void AddGestureScore(string gestureType, float speed)
+    public int AddGestureScore(string gestureType, float speed)
     {
         int basePoints = GetBasePoints(gestureType);
         float multiplier = 1f + multiplierFactor * speed;
@@ -39,6 +39,7 @@ public class scoreManager : MonoBehaviour
         currentScore += added;
 
         UpdateScoreUI();
+        return added;
     }
 
     void UpdateScoreUI()
