@@ -24,7 +24,6 @@ class HandDetector:
             '1': "punch",
             '2': "slap",
             '3': "tickle",
-            '4': "jitak"
         }
 
         self.current_label = '0'
