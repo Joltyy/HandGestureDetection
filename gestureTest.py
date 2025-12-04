@@ -44,9 +44,8 @@ class GestureTestSystem:
 
 
         #load
-        if not self.gesture_detector.load_model("gesture_model.h5", "scaler.pkl"):
+        if not self.gesture_detector.load_model("gesture_model.keras", "scaler.pkl"):
             raise Exception("Failed to load trained model!")
-        
         print("Model loaded successfully!")
         
         self.prev_pos = None          # last stable centroid (x,y)

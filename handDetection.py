@@ -41,11 +41,9 @@ class HandDetector:
         features = []
         landmarks = []
 
-        #get coordinates of each hand landmarks
         for lm in hand_landmarks.landmark:
             landmarks.append([lm.x, lm.y, lm.z])
 
-        #normalize the coordinates relative to wrist
         wrist = landmarks[0]
         for i in range(1, len(landmarks)):
             relative_x = landmarks[i][0] - wrist[0]
@@ -53,22 +51,20 @@ class HandDetector:
             relative_z = landmarks[i][2] - wrist[2]
             features.extend([relative_x, relative_y, relative_z])
 
-        #get distance between fingertips
-        finger_tips = [4, 8, 12, 16, 20]  # Thumb, Index, Middle, Ring, Pinky
+        finger_tips = [4, 8, 12, 16, 20]
         for i, tip1 in enumerate(finger_tips):
             for tip2 in range(i + 1, len(finger_tips)):
+                # 2D distance (xy) to reduce z noise; switch back to 3D if needed
                 dist = np.sqrt((landmarks[tip1][0] - landmarks[tip2][0])**2 +
-                               (landmarks[tip1][1] - landmarks[tip2][1])**2 + 
-                               (landmarks[tip1][2] - landmarks[tip2][2])**2)
+                               (landmarks[tip1][1] - landmarks[tip2][1])**2)
                 features.append(dist)
 
-        #feature array will be filled with coordinates of each landmark (3 per landmark)
-        #relative to the wrist and distances between fingertips
-        #total elements will be 60 (relative coords) + 10 (distances) = 70
+        # 60 rel coords + 10 distances = 70
         return np.array(features)
     
     def run(self):
         pTime = 0
+        features = None  # ensure defined every loop
 
         while True:
             success, img = self.videoCapture.read()
@@ -77,12 +73,12 @@ class HandDetector:
             imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             results = self.hands.process(imgRGB)
 
-            current_features = None
+            features = None
             if results.multi_hand_landmarks:
-                for handLms in results.multi_hand_landmarks:
-                    self.mpDraw.draw_landmarks(img, handLms, self.mpHands.HAND_CONNECTIONS)
-                    features = self.getFeatures(handLms)
-                    #print(features)
+                # use the first hand only for consistency
+                handLms = results.multi_hand_landmarks[0]
+                self.mpDraw.draw_landmarks(img, handLms, self.mpHands.HAND_CONNECTIONS)
+                features = self.getFeatures(handLms)
 
             # get fps
             cTime = time.time()
@@ -99,24 +95,30 @@ class HandDetector:
             #s to save the feature and label it
             #q to quit
 
-            #changes made here is just to make sure you can't accidentally save when no hand is detected
-            if(key in [ord('0'), ord('1'), ord('2'), ord('3'), ord('4'), ord('5')]):
+            if key in [ord('0'), ord('1'), ord('2'), ord('3')]:
                 self.current_label = chr(key)
-                self.current_features = features if results.multi_hand_landmarks else None
-                if results.multi_hand_landmarks and 'features' in locals():
+                if features is not None:
                     self.current_features = features
                     print(f"Selected gesture: {self.gesture_labels[self.current_label]}")
                 else:
                     self.current_features = None
                     print("No hand detected! Cannot select gesture.")
-                # if self.current_features is None:
-                #     print("No hand detected try again")
-                # print(f"Selected gesture: {self.gesture_labels[self.current_label]}")
+
             elif key == ord('s'):
-                if (self.current_features is not None and self.current_label in self.gesture_labels):
-                    self.save_training_sample(self.current_features, self.current_label)
+                # recompute features at save time to avoid stale data
+                imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                results = self.hands.process(imgRGB)
+                if results.multi_hand_landmarks:
+                    handLms = results.multi_hand_landmarks[0]
+                    fresh_features = self.getFeatures(handLms)
+                else:
+                    fresh_features = None
+
+                if fresh_features is not None and self.current_label in self.gesture_labels:
+                    self.save_training_sample(fresh_features, self.current_label)
                 else:
                     print("No hand detected! Cannot save sample.")
+
             elif key == ord('q'):
                 break
 
@@ -129,6 +131,7 @@ class HandDetector:
             return
         with open(self.data_file, 'a', newline='') as f:
             writer = csv.writer(f)
+            # store label as int string stays compatible with loader
             row = features.tolist() + [label]
             writer.writerow(row)
         print(f"Saved sample with label '{self.gesture_labels[label]}' ({label})")

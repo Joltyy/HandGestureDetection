@@ -29,7 +29,7 @@ public class scoreManager : MonoBehaviour
 
     }
 
-    public void AddGestureScore(string gestureType, float speed)
+    public int AddGestureScore(string gestureType, float speed)
     {
         int basePoints = GetBasePoints(gestureType);
         float multiplier = 1f + multiplierFactor * speed;
@@ -38,6 +38,15 @@ public class scoreManager : MonoBehaviour
         int added = Mathf.RoundToInt(basePoints * multiplier);
         currentScore += added;
 
+        UpdateScoreUI();
+        return added;
+    }
+
+    // Lightweight helper to add a small amount of points (e.g., for continuous tickle)
+    public void AddPoints(int points)
+    {
+        if (points <= 0) return;
+        currentScore += points;
         UpdateScoreUI();
     }
 
