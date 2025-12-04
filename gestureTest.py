@@ -8,16 +8,16 @@ import socket
 import json
 import math
 
-# HOST = '127.0.0.1'
-# PORT = 5005
+HOST = '127.0.0.1'
+PORT = 5005
 
-# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# s.bind((HOST, PORT))
-# s.listen(1)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((HOST, PORT))
+s.listen(1)
 
-# print("Waiting for Unity connection...")
-# conn, addr = s.accept()
-# print(f"Connected by {addr}")
+print("Waiting for Unity connection...")
+conn, addr = s.accept()
+print(f"Connected by {addr}")
 
 class GestureTestSystem:
     def __init__(self):
@@ -153,14 +153,14 @@ class GestureTestSystem:
                         gesture_text = f"Gesture: {smoothed_gesture}"
                         confidence_text = f"Confidence: {confidence:.2f}"
 
-                        # # send to unity: "index,speed\n" (speed is 0 when stationary)
-                        # gesture_index = int(pred_class)
-                        # # DEBUG: print what we send to Unity
-                        # try:
-                        #     print(f"[DEBUG] Sending to Unity: index={gesture_index}, speed={speed:.2f}, gesture={smoothed_gesture}")
-                        # except Exception:
-                        #     pass
-                        # conn.sendall(f"{gesture_index},{speed:.2f}\n".encode('utf-8'))
+                        # send to unity: "index,speed\n" (speed is 0 when stationary)
+                        gesture_index = int(pred_class)
+                        # DEBUG: print what we send to Unity
+                        try:
+                            print(f"[DEBUG] Sending to Unity: index={gesture_index}, speed={speed:.2f}, gesture={smoothed_gesture}")
+                        except Exception:
+                            pass
+                        conn.sendall(f"{gesture_index},{speed:.2f}\n".encode('utf-8'))
 
                     # display result and confidence on frame
                     cv2.putText(frame, gesture_text, (10, 50),

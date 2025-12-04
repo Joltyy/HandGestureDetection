@@ -1,106 +1,39 @@
-using UnityEngine;
-using UnityEngine.UI;
+﻿using UnityEngine;
 using TMPro;
-using UnityEngine.Events;
+using UnityEngine.UI;
 
-public class timer : MonoBehaviour
+public class TimerScript : MonoBehaviour
 {
-    [Tooltip("Time to count down (seconds)")]
-    public float timeRemaining = 60f;
+    // 2 minutes = 120 seconds (you can change this in Inspector)
+    public float timeRemaining = 120f;
+    public bool timerIsRunning = true;
+    public TMP_Text timerText;
 
-    [Tooltip("Assign a UI Slider to display the remaining time (optional)")]
-    public Slider timeSlider;
+    // Slider + its fill image
+    public Slider timerSlider;
+    public Image sliderFill;   // drag the "Fill" Image here
 
-    [Tooltip("Optional TextMeshProUGUI to display numeric time")]
-    public TextMeshProUGUI timeLabel;
-
-    [Tooltip("Event invoked when timer reaches zero (optional)")]
-    public UnityEvent onTimerEnd;
-
-    [Header("Gradient Colors")]
-    public Color fullColor = Color.green;
-    public Color midColor = Color.yellow;
-    public Color lowColor = Color.red;
-
-    [Header("Handle (knob) behavior")]
-    [Range(0f, 1f)]
-    public float handleShowThreshold = 0.2f;
-    public float handlePulseSpeed = 6f;
-    public float handlePulseAmount = 0.15f;
-
-    [Header("Flare (appears when low)")]
-    public GameObject flareObject;
-    [Range(0f, 1f)]
-    public float flareThreshold = 0.2f;
-    public float flareMaxScale = 1.6f;
-    public float flareSpeed = 4f;
-
-    [Tooltip("Show centiseconds in the label (2 digits). Display format: mm:ss:cc")]
-    public bool showCentiseconds = true;
-
-    bool timerIsRunning = false;
-
-    // internal
-    Image sliderFillImage;
-    float duration = 60f;
-
-    // flare internals
-    Vector3 flareBaseScale;
-    Image flareImage;
-    ParticleSystem flareParticles;
-
-    // handle internals
-    GameObject handleGameObject;
-    Image handleImage;
-    Vector3 handleBaseScale;
+    private float totalTime;   // remember starting time
 
     void Start()
     {
-        // Slider setup
-        if (timeSlider != null)
-        {
-            timeSlider.maxValue = Mathf.Max(0.0001f, timeRemaining);
-            timeSlider.value = timeRemaining;
-            timeSlider.interactable = false;
-
-            duration = timeSlider.maxValue;
-            if (timeSlider.fillRect != null)
-                sliderFillImage = timeSlider.fillRect.GetComponent<Image>();
-
-            if (timeSlider.handleRect != null)
-            {
-                handleGameObject = timeSlider.handleRect.gameObject;
-                handleImage = handleGameObject.GetComponent<Image>();
-                handleBaseScale = handleGameObject.transform.localScale;
-            }
-        }
-        else
-        {
-            duration = timeRemaining;
-        }
-
-        // Label: no styling, no re-parenting, leave as placed in the scene
-        if (timeLabel != null)
-        {
-            timeLabel.raycastTarget = false;
-        }
-
-        // Flare setup
-        if (flareObject != null)
-        {
-            flareBaseScale = flareObject.transform.localScale;
-            flareImage = flareObject.GetComponent<Image>();
-            flareParticles = flareObject.GetComponentInChildren<ParticleSystem>(true);
-            flareObject.SetActive(false);
-        }
-
-        float initialT = (duration > 0f) ? Mathf.Clamp01(timeRemaining / duration) : 0f;
-        if (handleGameObject != null)
-            handleGameObject.SetActive(initialT <= handleShowThreshold);
-
+        timeRemaining = 120; // always reset timer
         timerIsRunning = true;
-        UpdateDisplay(timeRemaining);
+
+        totalTime = timeRemaining;
+
+        UpdateTimerDisplay(timeRemaining);
+
+        if (timerSlider != null)
+        {
+            timerSlider.minValue = 0f;
+            timerSlider.maxValue = totalTime;
+            timerSlider.value = timeRemaining;
+        }
+
+        UpdateSliderColor();
     }
+
 
     void Update()
     {
@@ -110,125 +43,65 @@ public class timer : MonoBehaviour
         {
             timeRemaining -= Time.deltaTime;
             if (timeRemaining < 0f) timeRemaining = 0f;
-            UpdateDisplay(timeRemaining);
+
+            UpdateTimerDisplay(timeRemaining);
+
+            if (timerSlider != null)
+            {
+                timerSlider.value = timeRemaining;
+            }
+
+            UpdateSliderColor();
         }
         else
         {
             timerIsRunning = false;
-            if (onTimerEnd != null) onTimerEnd.Invoke();
-            Debug.Log("Timer finished.");
+            TimerFinished();
         }
     }
 
-    void UpdateDisplay(float time)
+    void UpdateTimerDisplay(float time)
     {
-        if (timeSlider != null)
-        {
-            if (timeSlider.maxValue < time)
-            {
-                timeSlider.maxValue = time;
-                duration = timeSlider.maxValue;
-            }
-            timeSlider.value = time;
-        }
+        int minutes = Mathf.FloorToInt(time / 60f);
+        int seconds = Mathf.FloorToInt(time % 60f);
+        timerText.text = $"{minutes:00}:{seconds:00}";
+    }
 
-        float t = (duration > 0f) ? Mathf.Clamp01(time / duration) : 0f;
+    // Green → Yellow → Red as time goes down
+    void UpdateSliderColor()
+    {
+        if (sliderFill == null || totalTime <= 0f) return;
 
-        // gradient color
-        Color currentColor;
-        if (t >= 0.5f)
+        // 0 = start (full time), 1 = time up
+        float t = 1f - (timeRemaining / totalTime);
+
+        Color green = Color.green;
+        Color yellow = Color.yellow;
+        Color red = Color.red;
+
+        Color c;
+
+        if (t < 0.5f)
         {
-            float u = (t - 0.5f) / 0.5f;
-            currentColor = Color.Lerp(midColor, fullColor, u);
+            // first half: green → yellow
+            float tt = t / 0.5f; // 0..1
+            c = Color.Lerp(green, yellow, tt);
         }
         else
         {
-            float u = t / 0.5f;
-            currentColor = Color.Lerp(lowColor, midColor, u);
+            // second half: yellow → red
+            float tt = (t - 0.5f) / 0.5f; // 0..1
+            c = Color.Lerp(yellow, red, tt);
         }
 
-        if (sliderFillImage != null)
-            sliderFillImage.color = currentColor;
-
-        // Simple label text only
-        if (timeLabel != null)
-        {
-            int totalSeconds = Mathf.FloorToInt(time);
-            int minutes = totalSeconds / 60;
-            int seconds = totalSeconds % 60;
-            int centis = Mathf.FloorToInt((time - totalSeconds) * 100f);
-
-            if (showCentiseconds)
-                timeLabel.text = string.Format("{0:00}:{1:00}:{2:00}", minutes, seconds, centis);
-            else
-                timeLabel.text = string.Format("{0:00}:{1:00}", minutes, seconds);
-
-            timeLabel.color = currentColor;
-        }
-
-        // Handle logic
-        bool showHandle = (t <= handleShowThreshold);
-        if (handleGameObject != null)
-        {
-            if (showHandle)
-            {
-                if (!handleGameObject.activeSelf) handleGameObject.SetActive(true);
-                float pulse = 1f + handlePulseAmount * Mathf.Sin(Time.time * handlePulseSpeed);
-                handleGameObject.transform.localScale = handleBaseScale * pulse;
-                if (handleImage != null) handleImage.color = currentColor;
-            }
-            else
-            {
-                if (handleGameObject.activeSelf) handleGameObject.SetActive(false);
-            }
-        }
-
-        // Flare logic
-        bool shouldFlare = (t <= flareThreshold);
-        if (flareObject != null)
-        {
-            if (shouldFlare)
-            {
-                if (!flareObject.activeSelf) flareObject.SetActive(true);
-                float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * flareSpeed);
-                float scaleMul = Mathf.Lerp(1f, flareMaxScale, pulse);
-                flareObject.transform.localScale = flareBaseScale * scaleMul;
-                if (flareImage != null) flareImage.color = currentColor;
-                if (flareParticles != null && !flareParticles.isPlaying) flareParticles.Play(true);
-            }
-            else
-            {
-                if (flareObject.activeSelf) flareObject.SetActive(false);
-                if (flareParticles != null && flareParticles.isPlaying)
-                    flareParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            }
-        }
+        sliderFill.color = c;
     }
+    public GameObject gameOverPanel;
 
-    public void StartTimer(float seconds = 60f)
+    void TimerFinished()
     {
-        timeRemaining = seconds;
-        if (timeSlider != null)
-        {
-            timeSlider.maxValue = Mathf.Max(0.0001f, seconds);
-            timeSlider.value = seconds;
-            duration = timeSlider.maxValue;
-        }
-        else
-        {
-            duration = seconds;
-        }
-
-        float t = (duration > 0f) ? Mathf.Clamp01(timeRemaining / duration) : 0f;
-        if (handleGameObject != null)
-            handleGameObject.SetActive(t <= handleShowThreshold);
-
-        timerIsRunning = true;
-        UpdateDisplay(timeRemaining);
+        Debug.Log("Time's up!");
+        gameOverPanel.SetActive(true);
     }
 
-    public void StopTimer()
-    {
-        timerIsRunning = false;
-    }
 }
