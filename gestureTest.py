@@ -116,12 +116,9 @@ class GestureTestSystem:
                             dist = np.linalg.norm(wrist_px - prev_wrist_px)
                             speed = dist / dt  # pixels per second
                             moving = speed >= speed_threshold
-                    # DEBUG: log raw wrist speed computation
-                    # (prints every frame a hand is detected; useful to verify values)
                     try:
                         print(f"[DEBUG] wrist_px={wrist_px} dt={dt:.4f} speed={speed:.2f} moving={moving}")
                     except Exception:
-                        # dt may be undefined on first frame; ignore
                         pass
                     prev_wrist_px = wrist_px
                     prev_time = now
