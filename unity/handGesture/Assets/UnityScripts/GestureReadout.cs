@@ -42,7 +42,8 @@ public class GestureReadout : MonoBehaviour
         int idx;
         float speed;
         string lastUpdate;
-        pyReciever.GetLatest(out idx, out speed, out lastUpdate);
+        int handDetected;
+        pyReciever.GetLatest(out idx, out speed, out lastUpdate, out handDetected);
 
         if (indexText != null)
             indexText.text = $"Index: {idx}";

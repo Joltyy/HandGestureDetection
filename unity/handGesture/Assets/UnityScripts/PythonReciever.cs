@@ -17,6 +17,8 @@ public class pythonreciever : MonoBehaviour
     public string lastUpdateUtc = ""; // ISO timestamp of last received update (for debugging)
     private readonly object dataLock = new object();
 
+    public int handDetected = 0;
+
 
     void Start()
     {
@@ -55,25 +57,25 @@ public class pythonreciever : MonoBehaviour
                 if (!string.IsNullOrEmpty(data))
                 {
                     latestMessage = data;
-                    // data format: "gestureIndex,speed"
+                    // format: "gestureIndex,speed,handDetected"
                     string[] parts = data.Split(',');
                     int parsedIndex = 0;
                     float parsedSpeed = 0f;
+                    int parsedHand = 0;
 
-                    if (parts.Length >= 1)
-                        int.TryParse(parts[0], out parsedIndex);
-                    if (parts.Length >= 2)
-                        float.TryParse(parts[1], out parsedSpeed);
+                    if (parts.Length >= 1) int.TryParse(parts[0].Trim(), out parsedIndex);
+                    if (parts.Length >= 2) float.TryParse(parts[1].Trim(), out parsedSpeed);
+                    if (parts.Length >= 3) int.TryParse(parts[2].Trim(), out parsedHand);
 
                     lock (dataLock)
                     {
                         gestureIndex = parsedIndex;
                         gestureSpeed = parsedSpeed;
+                        handDetected = parsedHand;
                         lastUpdateUtc = DateTime.UtcNow.ToString("O");
                     }
 
-                    Debug.Log($"[PythonReciever:{sourceObjectName}] Gesture Index: {parsedIndex}  Speed: {parsedSpeed:F2} px/s  (updated: {lastUpdateUtc})");
-                    // values are now stored in the public fields for other scripts to read
+                    //Debug.Log($"[PythonReciever:{sourceObjectName}] idx={parsedIndex} speed={parsedSpeed:F2} detected={parsedHand} (updated: {lastUpdateUtc})");
                 }
             }
         }
@@ -102,13 +104,14 @@ public class pythonreciever : MonoBehaviour
     }
 
     // Thread-safe accessor for other scripts to read the latest data snapshot
-    public void GetLatest(out int outGestureIndex, out float outGestureSpeed, out string outLastUpdateUtc)
+    public void GetLatest(out int outGestureIndex, out float outGestureSpeed, out string outLastUpdateUtc, out int outHandDetected)
     {
         lock (dataLock)
         {
             outGestureIndex = gestureIndex;
             outGestureSpeed = gestureSpeed;
             outLastUpdateUtc = lastUpdateUtc;
+            outHandDetected = handDetected;
         }
     }
 }

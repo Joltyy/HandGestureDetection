@@ -27,18 +27,12 @@ class GestureDetector:
             #Input layer
             tf.keras.layers.Input(shape=(self.input_dim,)), 
 
-            tf.keras.layers.Dense(64, activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dropout(0.2),
-
             #Layer 1
-            tf.keras.layers.Dense(64, activation='relu'),
-            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dense(128, activation='relu'),
             tf.keras.layers.Dropout(0.2),
 
             #Layer 2
-            tf.keras.layers.Dense(64, activation='relu'),
-            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dense(128, activation='relu'),
             tf.keras.layers.Dropout(0.2),
 
             #Output layer
@@ -46,9 +40,9 @@ class GestureDetector:
         ])
 
         self.model.compile(
-            optimizer='adam',
-            loss='sparse_categorical_crossentropy',
-            metrics=['accuracy']
+            optimizer=tf.keras.optimizers.AdamW(weight_decay=1e-4),
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True),
+            metrics=["accuracy"]
         )
 
         return self.model
@@ -70,11 +64,11 @@ class GestureDetector:
 
         # Callbacks
         callbacks = [
-            tf.keras.callbacks.EarlyStopping(
-                monitor='val_loss', 
-                patience=20, 
-                restore_best_weights=True
-            ),
+            # tf.keras.callbacks.EarlyStopping(
+            #     monitor='val_loss', 
+            #     patience=20, 
+            #     restore_best_weights=True
+            # ),
             tf.keras.callbacks.ReduceLROnPlateau(
                 monitor='val_loss', 
                 factor=0.5, 
@@ -92,7 +86,15 @@ class GestureDetector:
             callbacks=callbacks,
             verbose=1
         )
+
+        train_acc = history.history.get('accuracy', [])
+        val_acc = history.history.get('val_accuracy', [])
+        for i, (a, va) in enumerate(zip(train_acc, val_acc), start=1):
+            print(f"Epoch {i}/{len(train_acc)} — train_acc={a:.4f}  val_acc={va:.4f}")
         
+        if train_acc:
+            print(f"Final — train_acc={train_acc[-1]:.4f}  val_acc={val_acc[-1]:.4f}")
+
         return history
     
     def predict(self, features):
@@ -156,37 +158,31 @@ class GestureDetector:
         return x, y
     
     def preprocess_data(self, x, y):
-        print("Preprocessing data...")
-
-        # Features numeric & finite
         x = x.astype(np.float32, copy=False)
         invalid_mask = np.any(np.isnan(x) | np.isinf(x), axis=1)
         if np.any(invalid_mask):
-            print(f"Warning: Found {invalid_mask.sum()} invalid samples (NaN/Inf). Removing...")
+            print(f"Found {invalid_mask.sum()} invalid samples (NaN/Inf)")
             x = x[~invalid_mask]
             y = y[~invalid_mask]
 
-        # Convert y to numeric -> int for training
         y_num = pd.to_numeric(pd.Series(y), errors='coerce')
         keep_numeric = y_num.notna()
         if not keep_numeric.all():
-            print(f"Warning: Found {(~keep_numeric).sum()} non-numeric labels. Removing...")
+            print(f"Found {(~keep_numeric).sum()} non-numeric labels")
         x = x[keep_numeric.values]
         y_num = y_num[keep_numeric].astype(int)
 
-        # Filter to allowed classes using string view, but KEEP int dtype for model
-        allowed = set(self.gesture_labels.keys())  # {'0','1','2','3','4'}
+        #check labels
+        allowed = set(self.gesture_labels.keys())
         y_str = y_num.astype(str)
         keep_allowed = y_str.isin(allowed)
         if not keep_allowed.all():
-            print(f"Warning: Found {(~keep_allowed).sum()} invalid labels. Removing...")
+            print(f"Found {(~keep_allowed).sum()} invalid labels")
         x = x[keep_allowed.values]
-        y_int = y_num[keep_allowed].to_numpy(dtype=np.int32)  # <-- int labels for sparse CE
+        y_int = y_num[keep_allowed].to_numpy(dtype=np.int32)
 
-        # Optional: show class counts
-        classes, counts = np.unique(y_int, return_counts=True)
-        print("Class counts:", dict(zip(classes.tolist(), counts.tolist())))
-        print(f"After preprocessing: {len(x)} samples remaining")
+        #y_onehot = tf.keras.utils.to_categorical(y_int, num_classes=self.num_classes)
+
         return x, y_int
 
 
