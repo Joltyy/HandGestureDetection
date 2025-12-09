@@ -658,18 +658,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHitScript
   pyReciever: {fileID: 2145016558}
-  speedThreshold: 100
-  triggerCooldown: 0.5
+  speedThreshold: 700
   punchGestureIndex: 1
   slapGestureIndex: 2
-  slapSpeedThreshold: 100
+  slapSpeedThreshold: 700
   slapSpeedToStrength: 0.0033333334
   slapTriggerName: isSlap
   slapStrengthParam: slapStrength
   tickleGestureIndex: 3
-  tickleSpeedThreshold: 100
+  tickleSpeedThreshold: 50
+  tickleExitThreshold: 20
   tickleBoolName: isTickle
-  ticklePointsPerSecond: 2
+  ticklePointsPerSecond: 10
+  punchCooldown: 1
+  slapCooldown: 1
   anim: {fileID: 1096471914}
   punchAction:
     m_Name: Punch

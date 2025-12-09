@@ -1,4 +1,4 @@
-Environment Setup
+Environment Setup (after cloning the project)
 __python -m venv HandGestureDetection__   
 __.\HandGestureDetection\Scripts\activate__   
 __cd HandGestureDetection__     
