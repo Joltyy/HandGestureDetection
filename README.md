@@ -10,3 +10,5 @@ gestureDetectionTrain.py to train the model
 gestureTest.py to test out the model  
 
 Unity Project file is inside the Folder under unity/handGesture
+to run the model with the unity project file, make sure to run the gestureTest.py first and once the program is waiting for unity connection, play the final scene in the unity project.  
+
