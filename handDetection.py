@@ -54,7 +54,7 @@ class HandDetector:
         finger_tips = [4, 8, 12, 16, 20]
         for i, tip1 in enumerate(finger_tips):
             for tip2 in range(i + 1, len(finger_tips)):
-                # 2D distance (xy) to reduce z noise; switch back to 3D if needed
+                # 2D distance (xy)
                 dist = np.sqrt((landmarks[tip1][0] - landmarks[tip2][0])**2 +
                                (landmarks[tip1][1] - landmarks[tip2][1])**2)
                 features.append(dist)
@@ -105,7 +105,6 @@ class HandDetector:
                     print("No hand detected! Cannot select gesture.")
 
             elif key == ord('s'):
-                # recompute features at save time to avoid stale data
                 imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 results = self.hands.process(imgRGB)
                 if results.multi_hand_landmarks:
@@ -131,7 +130,6 @@ class HandDetector:
             return
         with open(self.data_file, 'a', newline='') as f:
             writer = csv.writer(f)
-            # store label as int string stays compatible with loader
             row = features.tolist() + [label]
             writer.writerow(row)
         print(f"Saved sample with label '{self.gesture_labels[label]}' ({label})")
