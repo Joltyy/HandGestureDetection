@@ -2,6 +2,7 @@
 
 ## Overview
 This project implements a real-time hand gesture detection system using Machine Learning. It includes modules for data collection, model training, and real-time testing. The system is designed to integrate with a Unity project for interactive visualization.
+[Demo Video Link](https://youtu.be/n6rcPzGWFV0)
 
 ## Environment Setup
 
